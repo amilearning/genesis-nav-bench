@@ -1,5 +1,5 @@
 """genesis-nav-bench: LLM-driven nav-task pipeline for the Genesis simulator."""
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from . import config  # noqa: F401
 from .experiment import DEFAULT_PROMPT_BANK, ExperimentRunner, ExperimentRunResult

@@ -60,7 +60,15 @@ succeed) — preferably a non-trivial one. No fences, no markdown — YAML only.
 ROBOT_SUMMARIES = {
     "husky": (
         "Ground rover, 0.99 × 0.67 m footprint, radius 0.5 m, "
-        "needs ≥1.2 m corridor, climbs ≤10 cm bumps. Spawn z=0.2."
+        "needs ≥1.2 m corridor, climbs ≤10 cm bumps. Spawn z=0.2. "
+        "Works on flat / random_uniform / sloped terrain."
+    ),
+    "go2": (
+        "Unitree Go2 quadruped, 0.65 × 0.30 m footprint, radius 0.3 m, "
+        "needs ≥0.8 m corridor. Nominal speed 0.5 m/s. Spawn z=0.35. "
+        "IMPORTANT: this robot uses a trained policy that was trained on a "
+        "FLAT plane. You MUST set world.ground.terrain.mode = flat. Do NOT "
+        "use random_uniform or sloped terrain with go2."
     ),
     "iris_drone": (
         "Aerial quadrotor, ~0.5 m wide, radius 0.4 m, "

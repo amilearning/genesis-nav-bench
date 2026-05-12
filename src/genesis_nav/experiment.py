@@ -281,8 +281,20 @@ def main(argv: list[str] | None = None) -> int:
         tasks = _load_descriptions(args.descriptions)
     else:
         rng = random.Random(args.seed)
-        chosen = rng.sample(DEFAULT_PROMPT_BANK, k=min(args.count, len(DEFAULT_PROMPT_BANK)))
-        tasks = [{**t, "robot": args.robot} for t in chosen]
+        # If count > bank size, sample WITH replacement and tag each name
+        # with a per-task index so the timestamped folders never collide
+        # even if two runs start in the same second.
+        if args.count <= len(DEFAULT_PROMPT_BANK):
+            chosen = rng.sample(DEFAULT_PROMPT_BANK, k=args.count)
+            tasks = [{**t, "robot": args.robot} for t in chosen]
+        else:
+            chosen = rng.choices(DEFAULT_PROMPT_BANK, k=args.count)
+            tasks = []
+            for i, t in enumerate(chosen):
+                tasks.append({
+                    **t, "robot": args.robot,
+                    "name": f"{t['name']}_r{i:02d}",   # disambiguates repeats
+                })
     if not tasks:
         print("no tasks to run", file=sys.stderr); return 1
 

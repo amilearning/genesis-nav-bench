@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "genesis-nav-bench"
-version = "0.2.0"
+version = "0.3.0"
 description = "LLM-driven navigation-task generation + simulation for the Genesis robot simulator."
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -36,12 +36,22 @@ assets = [
     "trimesh>=4.0",
     "objaverse>=0.1",
 ]
+go2 = [
+    "rsl-rl-lib>=5.0.0",
+    "tensordict>=0.4",
+    "scipy>=1.10",
+]
 dev = [
     "pytest>=7.0",
     "ruff>=0.5",
     "pyright>=1.1",
 ]
-all = ["genesis-nav-bench[designer,assets,dev]"]
+all = ["genesis-nav-bench[designer,assets,go2,dev]"]
+
+[tool.setuptools.package-data]
+"genesis_nav.designer" = ["data/*.yaml", "data/*.md"]
+"genesis_nav.data" = ["configs/*.yaml"]
+"genesis_nav.robots" = ["go2_policy/*"]
 
 [project.scripts]
 genesis-nav = "genesis_nav.cli:main"
@@ -53,10 +63,6 @@ Issues = "https://github.com/hojinlee/genesis-nav-bench/issues"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["genesis_nav*"]
-
-[tool.setuptools.package-data]
-"genesis_nav.designer" = ["data/*.yaml", "data/*.md"]
-"genesis_nav.data" = ["configs/*.yaml"]
 
 [tool.ruff]
 target-version = "py311"

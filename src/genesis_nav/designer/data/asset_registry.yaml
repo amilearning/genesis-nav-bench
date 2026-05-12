@@ -28,6 +28,15 @@ robots:
     max_climb_height: 0.10           # cm of bump it can roll over
     typical_spawn_z: 0.20
 
+  go2:
+    type: legged
+    description: "Unitree Go2 quadruped, trained velocity-tracking policy (cmd = [vx, vy=0, ωz]). FLAT terrain only — policy was trained on a plane; do NOT use random_uniform / sloped terrain with this robot."
+    body_size: [0.65, 0.30, 0.30]
+    radius:    0.30
+    min_corridor_width: 0.80
+    target_speed_mps: 0.5
+    typical_spawn_z: 0.35
+
   iris_drone:
     type: aerial
     description: "PX4 Iris quadrotor, 50 cm X-config."

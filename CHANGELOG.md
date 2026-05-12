@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.3.0 (2026-05-12)
+
+### Added
+- **Go2 quadruped** as a first-class robot in the nav pipeline. `robot.type`
+  in the YAML now selects between `husky` (existing) and `go2` (new); the
+  runner auto-dispatches.
+- **Bundled Go2 policy**: `cfgs.pkl` + `model_299.pt` ship inside the wheel
+  at `src/genesis_nav/robots/go2_policy/`. Resolved via
+  `paths().go2_policy_dir` (overridable in `~/.genesis_navrc`).
+- `src/genesis_nav/runner/go2_drive.py` — Go2 nav runner. Pure-pursuit
+  produces `(v_lin, ω)` which becomes the velocity command for the trained
+  RL policy; the policy outputs joint targets at 50 Hz.
+- `src/genesis_nav/robots/go2_env.py` — Go2Env (vendored from RoboGen-style
+  upstream, patched: pre-build hook for spawning the planner's obstacles
+  into the scene + spawn-pose override).
+- New `[go2]` optional install: `pip install genesis-nav-bench[go2]`
+  brings `rsl-rl-lib>=5.0.0`, `tensordict`, `scipy`.
+- `asset_registry.yaml`: `go2` robot row (radius 0.30 m, min corridor 0.80 m,
+  target speed 0.5 m/s, spawn z 0.35 m). Marks the policy as flat-terrain only.
+- `prompts.py:ROBOT_SUMMARIES['go2']` — tells Gemini Go2 needs flat ground.
+
+### Fixed
+- Two Go2-specific bugs surfaced during integration:
+  1. Go2Env auto-resets at `episode_length_s` (20 s) mid-mission — fixed by
+     overriding it to 600 s for nav drives.
+  2. Pure-pursuit can't stop Go2 if it overshoots the goal (no reverse) —
+     fixed via a wider `goal_tolerance_m=0.60` + an overshoot detector
+     (stops when min-dist-to-goal was < 1.2 m and now growing for ≥50 steps).
+
 ## 0.2.0 (2026-05-12)
 
 ### Added

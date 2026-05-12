@@ -40,6 +40,7 @@ class Paths:
     objaverse_cache: Path | None       # ~/.objaverse
     objaverse_index: Path | None       # JSON with {alias: {glb_path, scale, ...}}
     luisarender_bin: Path | None       # LuisaRenderPy.so dir
+    go2_policy_dir: Path | None        # dir containing cfgs.pkl + model_<ckpt>.pt
     outputs: Path               # generated nav-task outputs
 
 
@@ -76,6 +77,9 @@ def paths() -> Paths:
         objaverse_index=pick("OBJAVERSE_INDEX", "objaverse_index",
                                str(root / "assets/asset_objaverse_index.json")),
         luisarender_bin=pick("LUISARENDER_BIN", "luisarender_bin", None),
+        # Default: the policy bundled with the package (small enough to ship).
+        go2_policy_dir=pick("GO2_POLICY_DIR", "go2_policy_dir",
+                              str(Path(__file__).resolve().parent / "robots" / "go2_policy")),
         outputs=pick("OUTPUTS_DIR", "outputs", str(root / "outputs")),
     )
 

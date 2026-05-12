@@ -34,6 +34,7 @@ from pathlib import Path
 from genesis_nav.config import output_dir, paths
 from genesis_nav.designer import designer as _designer_mod
 from genesis_nav.planner import astar as _astar_mod
+from genesis_nav.runner import go2_drive as _go2_runner_mod
 from genesis_nav.runner import husky_drive as _runner_mod
 
 
@@ -134,10 +135,24 @@ class NavRunner:
         self.rasterizer = rasterizer
 
     def run(self, task_name: str) -> RunResult:
-        """Run one task. Returns RunResult with metrics read back from the
-        runner's persisted drive_metrics.json."""
+        """Run one task. Dispatches to the right runner based on the task
+        YAML's `robot.type` (husky or go2). Returns RunResult with metrics
+        read back from the runner's persisted drive_metrics.json."""
+        # Peek at the YAML to learn the robot type
+        import yaml as _yaml
+        from genesis_nav.planner.astar import _resolve_task_yaml
+        yaml_path = _resolve_task_yaml(
+            task_name.removeprefix("nav_").removesuffix(".yaml"), None)
+        cfg = _yaml.safe_load(yaml_path.read_text())
+        robot_type = cfg.get("robot", {}).get("type", "husky")
+
         t0 = time.perf_counter()
-        out_dir = _runner_mod.run(task_name, rasterizer=self.rasterizer)
+        if robot_type == "husky":
+            out_dir = _runner_mod.run(task_name, rasterizer=self.rasterizer)
+        elif robot_type == "go2":
+            out_dir = _go2_runner_mod.run_go2(task_name, rasterizer=self.rasterizer)
+        else:
+            raise ValueError(f"unknown robot.type {robot_type!r}; expected husky|go2")
         wall = time.perf_counter() - t0
 
         metrics_path = out_dir / "drive_metrics.json"
