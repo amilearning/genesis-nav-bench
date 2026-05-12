@@ -1,0 +1,56 @@
+scene:
+  name: nav_smoke_test_v1
+  description: "Outdoor park, Husky weaves between USD trees and a cluster of bushes, ends near a bench."
+  bounds: [-15, 15, -15, 15]
+
+robot:
+  type: husky
+  start: [-12.0, 0.0]
+  goal:  [ 12.0, 0.0]
+
+world:
+  env_type: outdoor
+  sky:
+    hdri: outdoor_sunny
+  ground:
+    texture: grass
+    terrain:
+      mode: flat
+
+objects:
+  # Flanking USD trees — split between north (y > 0) and south (y < 0)
+  - {name: cherry_1,   type: usd, usd_name: tree_japanese_cherry, position: [-6.0,  3.5, 0.0]}
+  - {name: oak_1,      type: usd, usd_name: tree_shumard_oak,     position: [-2.0,  4.5, 0.0]}
+  - {name: cherry_2,   type: usd, usd_name: tree_japanese_cherry, position: [ 3.0,  4.0, 0.0]}
+  - {name: dogwood_1,  type: usd, usd_name: tree_dogwood,         position: [ 7.0,  3.0, 0.0]}
+  - {name: oak_2,      type: usd, usd_name: tree_scarlet_oak,     position: [-8.0, -4.5, 0.0]}
+  - {name: apple_1,    type: usd, usd_name: tree_common_apple,    position: [-3.0, -3.0, 0.0]}
+  - {name: oak_3,      type: usd, usd_name: tree_black_oak,       position: [ 5.0, -5.5, 0.0]}
+  - {name: hawthorn_1, type: usd, usd_name: tree_hawthorn,        position: [ 9.0, -4.0, 0.0]}
+
+  # GLB Objaverse bushes/hedges for variety
+  - {name: bush_1,     type: glb, glb_name: bush_flowering, position: [-9.0,  6.0, 0.0]}
+  - {name: bush_2,     type: glb, glb_name: bush_leafy,     position: [ 0.0,  6.5, 0.0]}
+  - {name: bush_3,     type: glb, glb_name: bush_flowering, position: [ 8.0,  7.0, 0.0]}
+  - {name: hedge_1,    type: glb, glb_name: hedge_simple,   position: [-9.0, -7.0, 0.0]}
+  - {name: hedge_2,    type: glb, glb_name: hedge_multi,    position: [ 0.0, -7.5, 0.0]}
+
+  # Bench near the goal (composite primitives)
+  - {name: bench_seat, type: box,      size: [1.6, 0.4, 0.05], position: [10.0,  3.0, 0.45], color: [0.45, 0.30, 0.15]}
+  - {name: bench_back, type: box,      size: [1.6, 0.05, 0.45], position: [10.0, 3.2, 0.70], color: [0.45, 0.30, 0.15]}
+  - {name: bench_leg_L, type: box,     size: [0.05, 0.40, 0.45], position: [9.3, 3.0, 0.225], color: [0.20, 0.20, 0.20]}
+  - {name: bench_leg_R, type: box,     size: [0.05, 0.40, 0.45], position: [10.7, 3.0, 0.225], color: [0.20, 0.20, 0.20]}
+
+  # Lamp posts
+  - {name: lamp_1_pole, type: cylinder, radius: 0.06, height: 4.0, position: [-10.0,  9.0, 2.0], color: [0.20, 0.22, 0.25]}
+  - {name: lamp_1_head, type: sphere,   radius: 0.20,              position: [-10.0,  9.0, 4.1], color: [0.95, 0.92, 0.55]}
+  - {name: lamp_2_pole, type: cylinder, radius: 0.06, height: 4.0, position: [ 10.0,  9.0, 2.0], color: [0.20, 0.22, 0.25]}
+  - {name: lamp_2_head, type: sphere,   radius: 0.20,              position: [ 10.0,  9.0, 4.1], color: [0.95, 0.92, 0.55]}
+
+  # Trash bins
+  - {name: bin_1, type: cylinder, radius: 0.20, height: 0.80, position: [-11.0,  3.0, 0.40], color: [0.25, 0.25, 0.30]}
+  - {name: bin_2, type: cylinder, radius: 0.20, height: 0.80, position: [ 11.5, -3.0, 0.40], color: [0.25, 0.25, 0.30]}
+
+spawn_zones:
+  - {name: west_open, center: [-12.0,  0.0], radius: 2.0}
+  - {name: east_open, center: [ 12.0,  0.0], radius: 2.0}

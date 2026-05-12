@@ -1,0 +1,44 @@
+scene:
+  name: nav_chicane_stress_v1
+  description: "Chicane stress test — Husky must weave around two big obstacles forming an S-curve."
+  bounds: [-15, 15, -15, 15]
+
+robot:
+  type: husky
+  start: [-12.0, 0.0]
+  goal:  [ 12.0, 0.0]
+
+world:
+  env_type: outdoor
+  sky:
+    hdri: outdoor_sunny
+  ground:
+    texture: grass
+    terrain:
+      mode: flat
+
+objects:
+  # Three obstacles forming an S-curve along y=0
+  # Obstacle 1 (west): blocks center, forces detour NORTH
+  - {name: block_1, type: box, size: [2.0, 4.0, 2.0],
+      position: [-6.0, -2.0, 1.0], color: [0.7, 0.3, 0.2]}
+  # Obstacle 2 (center): blocks the north passage at x=0, forces dip SOUTH
+  - {name: block_2, type: box, size: [2.0, 4.0, 2.0],
+      position: [ 0.0,  2.0, 1.0], color: [0.3, 0.7, 0.2]}
+  # Obstacle 3 (east): blocks the south passage at x=+6, forces final dip NORTH
+  - {name: block_3, type: box, size: [2.0, 4.0, 2.0],
+      position: [ 6.0, -2.0, 1.0], color: [0.2, 0.3, 0.7]}
+
+  # A few small posts as visual depth cues (not on the path)
+  - {name: post_n1, type: cylinder, radius: 0.10, height: 1.5,
+      position: [-12.0,  6.0, 0.75], color: [0.95, 0.95, 0.95]}
+  - {name: post_n2, type: cylinder, radius: 0.10, height: 1.5,
+      position: [  0.0,  6.0, 0.75], color: [0.95, 0.95, 0.95]}
+  - {name: post_n3, type: cylinder, radius: 0.10, height: 1.5,
+      position: [ 12.0,  6.0, 0.75], color: [0.95, 0.95, 0.95]}
+  - {name: post_s1, type: cylinder, radius: 0.10, height: 1.5,
+      position: [-12.0, -6.0, 0.75], color: [0.95, 0.95, 0.95]}
+  - {name: post_s2, type: cylinder, radius: 0.10, height: 1.5,
+      position: [  0.0, -6.0, 0.75], color: [0.95, 0.95, 0.95]}
+  - {name: post_s3, type: cylinder, radius: 0.10, height: 1.5,
+      position: [ 12.0, -6.0, 0.75], color: [0.95, 0.95, 0.95]}

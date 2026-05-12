@@ -1,0 +1,320 @@
+# Asset registry — what scene_loader.py + run_nav_task.py can build from a
+# nav-task YAML. Used as part of the Gemini designer prompt.
+#
+# Sections:
+#   robots             — what robot the navigation task targets
+#   world              — env_type (indoor/outdoor), HDRIs, ground textures,
+#                        terrain modes (flat / random_uniform / sloped)
+#   primitives         — box / cylinder / sphere (Genesis-native, fast)
+#   recipes            — composite primitive cookbook (tree = trunk + canopy,
+#                        bench = top + back + legs, etc.). Lighter than USD
+#                        but stylized.
+#   usd_assets         — photoreal USDs Gemini can also place. Trees, plants,
+#                        kitchen appliances. Each has a `scale_hint` since some
+#                        come from centimeter-authored USDs.
+#   glb_assets         — Objaverse photoreal GLBs with pre-measured scales.
+
+# ════════════════════════════════════════════════════════════════════
+# Robots — Gemini sees this so it can size the start/goal corridor and
+# guarantee the robot can reach the goal without scraping obstacles.
+# ════════════════════════════════════════════════════════════════════
+robots:
+  husky:
+    type: ground
+    description: "Clearpath Husky A200, 4-wheel skid-steer rover."
+    body_size: [0.99, 0.67, 0.36]    # length, width, height m
+    radius:    0.50                  # circumscribed disk radius (m)
+    min_corridor_width: 1.20         # smallest gap that's safely navigable
+    max_climb_height: 0.10           # cm of bump it can roll over
+    typical_spawn_z: 0.20
+
+  iris_drone:
+    type: aerial
+    description: "PX4 Iris quadrotor, 50 cm X-config."
+    body_size: [0.5, 0.5, 0.15]
+    radius:    0.40
+    min_corridor_width: 0.80
+    typical_spawn_z: 1.5             # spawn at altitude
+
+# ════════════════════════════════════════════════════════════════════
+# World — environment type, sky, ground
+# ════════════════════════════════════════════════════════════════════
+world:
+  env_types:
+    outdoor: "Open-air scene. Use sky HDRI for env_surface, grass/dirt/sand/etc. for ground texture."
+    indoor:  "Enclosed scene. Use indoor HDRI (warehouse, hall, gym) for env_surface, wood/tile/concrete for floor."
+
+  # HDRIs (in scenes/textures/hdris/<name>.hdr). Pick ONE per scene.
+  hdris:
+    # ── Outdoor: time-of-day ──
+    outdoor_sunny:                 "Clear midday African sky, strong directional sun. Good for default outdoor."
+    outdoor_dawn:                  "Early morning warm orange sky."
+    outdoor_sunset:                "Golden hour sky over rural asphalt road."
+    sunset_golden:                 "Belfast harbour sunset, warm orange/pink."
+    noon_tropical:                 "Tropical noon, very bright, sharp shadows."
+    dusk_savannah:                 "Savannah twilight, dimmer ambient."
+    blue_hour:                     "Just after sunset, cool blue cast."
+    night_clear:                   "Clear starry night, very low light."
+    night:                         "Moonless night, almost no ambient."
+    # ── Outdoor: weather/mood ──
+    overcast_diffuse:              "Soft overcast sky, no harsh shadows. Good for diffuse renders. (= kloppenheim_06)"
+    cloudy_dramatic:               "Heavy storm clouds with breaks of light."
+    stormy:                        "Dark dramatic storm sky."
+    wasteland_storm:               "Apocalyptic dusty sky."
+    cyclorama:                     "Studio hard light, useful for product-shot style outdoor."
+    kloofendal_overcast_puresky:   "Overcast variant of the kloofendal HDRI."
+    kloppenheim_07_puresky:        "Cloudy puresky variant."
+    aristea_wreck_puresky:         "Dramatic puresky."
+    qwantani_puresky:              "Savannah puresky midday."
+    syferfontein_18d_clear_puresky: "Clear desert puresky."
+    # ── Outdoor: environment ──
+    forest_slope:                  "Inside a forest, trees on all sides."
+    alpine:                        "Mountain valley with snowy peaks."
+    desert_clear:                  "Open desert, dry tones."
+    beach:                         "Beach at midday, ocean horizon."
+    golden_bay:                    "Coastal cliffs at sunset."
+    park:                          "Roof garden, urban park feel."
+    city_street:                   "Urban courtyard between buildings."
+    urban_alley:                   "Narrow alley between buildings."
+    # ── Indoor ──
+    indoor_studio:                 "Small white studio."
+    indoor_studio2:                "Alternative small studio, warmer tones."
+    indoor_warm:                   "Warm-toned indoor room."
+    indoor_hall:                   "Large architectural hall."
+    indoor_gym:                    "Indoor gym / lebombo-style."
+    indoor_workshop:               "Aerodynamics workshop, technical."
+    indoor_warehouse:              "Empty warehouse interior."
+    warehouse:                     "Old depot, industrial."
+
+  # Ground textures (in scenes/textures/ground/<name>.jpg).
+  # Pair with the right env_type — wood/tile/concrete for indoors,
+  # grass/dirt/sand/etc. for outdoor.
+  ground_textures:
+    grass:                   "Aerial grass-with-rock — main outdoor green. nor+rough available."
+    dirt:                    "Rocky terrain — bare ground, brown."
+    sand:                    "Aerial beach sand."
+    mud:                     "Cracked dry mud."
+    gravel:                  "Gravel concrete — dirt path / parking apron."
+    cobblestone:             "Cobblestone floor — old-town outdoor or courtyard."
+    concrete:                "Rough concrete — modern outdoor or parking lot."
+    asphalt_02:              "Asphalt road surface."
+    aerial_asphalt_01:       "Aerial asphalt — large paved area."
+    wood:                    "Wood planks grey — indoor floor."
+    weathered_brown_planks:  "Weathered brown planks — rustic indoor / cabin."
+    tile:                    "Marble tile — indoor lobby."
+
+  # Terrain modes for the ground entity.
+  terrain_modes:
+    flat:
+      description: "Genesis Plane. Perfectly flat."
+      params: {}
+    random_uniform:
+      description: "Bumpy terrain via gs.morphs.Terrain(subterrain_types='random_uniform_terrain'). Use for natural outdoor."
+      params:
+        vertical_scale: "0.005-0.03 (cm-scale bumps). 0.005 = barely there, 0.02 = noticeable, 0.05 = rough."
+        horizontal_scale: "0.25 default."
+        subterrain_size: "(W, H) meters; should fit the scene bounds."
+    sloped:
+      description: "Pyramid slope via subterrain_types='pyramid_sloped_terrain'. Use for a single incline."
+      params:
+        slope: "0.05-0.20 (fraction). 0.10 ≈ 6° incline."
+
+# ════════════════════════════════════════════════════════════════════
+# Primitives — Genesis-native (fastest render)
+# ════════════════════════════════════════════════════════════════════
+primitives:
+  box:
+    description: "Rectangular cuboid. Use for walls, road segments, benches, tables, signs, buildings."
+    fields:
+      size:     {type: "[length, width, height] meters", required: true}
+      position: {type: "[x, y, z] meters", required: true, note: "z is body center"}
+      rotation: {type: "[roll, pitch, yaw] radians", default: [0, 0, 0]}
+      color:    {type: "[r, g, b] in 0..1", default: [0.6, 0.6, 0.6]}
+      surface:  {type: "rough | smooth | reflective", default: "rough"}
+
+  cylinder:
+    description: "Vertical cylinder. Use for tree trunks, lamp poles, traffic cones, columns, drums."
+    fields:
+      radius:   {type: meters, required: true}
+      height:   {type: meters, required: true}
+      position: {type: "[x, y, z] meters", required: true}
+      rotation: {type: "[roll, pitch, yaw] radians", default: [0, 0, 0]}
+      color:    {type: "[r, g, b]", default: [0.6, 0.6, 0.6]}
+      surface:  {type: "rough | smooth | reflective", default: "rough"}
+
+  sphere:
+    description: "Sphere. Use for tree canopies, lamp heads, ball-shaped decor."
+    fields:
+      radius:   {type: meters, required: true}
+      position: {type: "[x, y, z] meters", required: true}
+      color:    {type: "[r, g, b]", default: [0.6, 0.6, 0.6]}
+      surface:  {type: "rough | smooth | reflective", default: "rough"}
+
+# ════════════════════════════════════════════════════════════════════
+# USD assets (photoreal). Path is absolute. Each USD already has materials
+# wired to UsdPreviewSurface (use `_genesis.usd` variants, not the raw .usd).
+# ════════════════════════════════════════════════════════════════════
+usd_assets:
+  # NVIDIA SimReady trees (Restaurant demopack). All converted via convert_tree_mdl.py.
+  # Each tree is ~3-12m tall. scale_hint=1.0 because Genesis already applies
+  # metersPerUnit=0.01 internally for these.
+  # NOTE: typical_footprint_radius is the TRUNK collision radius for ground
+  # robots, NOT the full canopy. Husky drives under the canopy; only the trunk
+  # is a real obstacle. Tree canopies are still visually huge (3-10 m).
+  tree_shumard_oak:
+    path: "/home/frl/genesis/usd_assets/restaurant/Demos/AEC/TowerDemo/RestaurantDemopack/Assets/Vegetation/Shumard_Oak/Shumard_Oak_genesis.usd"
+    description: "Large mature oak, full leaf canopy. ~12m tall, canopy ~8m wide."
+    typical_footprint_radius: 0.8
+  tree_black_oak:
+    path: "/home/frl/genesis/usd_assets/restaurant/Demos/AEC/TowerDemo/RestaurantDemopack/Assets/Vegetation/Black_Oak/Black_Oak_genesis.usd"
+    description: "Massive bare oak (winter), thick trunk."
+    typical_footprint_radius: 1.5
+  tree_scarlet_oak:
+    path: "/home/frl/genesis/usd_assets/restaurant/Demos/AEC/TowerDemo/RestaurantDemopack/Assets/Vegetation/Scarlet_Oak/Scarlet_Oak_genesis.usd"
+    description: "Tall oak, autumn coloring."
+    typical_footprint_radius: 0.7
+  tree_hawthorn:
+    path: "/home/frl/genesis/usd_assets/restaurant/Demos/AEC/TowerDemo/RestaurantDemopack/Assets/Vegetation/Hawthorn/Hawthorn_genesis.usd"
+    description: "Small bushy tree."
+    typical_footprint_radius: 0.5
+  tree_common_apple:
+    path: "/home/frl/genesis/usd_assets/restaurant/Demos/AEC/TowerDemo/RestaurantDemopack/Assets/Vegetation/Common_Apple/Common_Apple_genesis.usd"
+    description: "Apple tree, rounded canopy."
+    typical_footprint_radius: 0.5
+  tree_dogwood:
+    path: "/home/frl/genesis/usd_assets/restaurant/Demos/AEC/TowerDemo/RestaurantDemopack/Assets/Vegetation/Dogwood/Dogwood_genesis.usd"
+    description: "Small flowering dogwood."
+    typical_footprint_radius: 0.4
+  tree_japanese_cherry:
+    path: "/home/frl/genesis/usd_assets/restaurant/Demos/AEC/TowerDemo/RestaurantDemopack/Assets/Vegetation/Japanese_Cherry/Japanese_Cherry_genesis.usd"
+    description: "Cherry tree with pink blossoms."
+    typical_footprint_radius: 0.6
+  tree_blue_berry_elder:
+    path: "/home/frl/genesis/usd_assets/restaurant/Demos/AEC/TowerDemo/RestaurantDemopack/Assets/Vegetation/Blue_Berry_Elder/Blue_Berry_Elder_genesis.usd"
+    description: "Elder shrub, green foliage."
+    typical_footprint_radius: 0.5
+  tree_sweet_mock_orange:
+    path: "/home/frl/genesis/usd_assets/restaurant/Demos/AEC/TowerDemo/RestaurantDemopack/Assets/Vegetation/Sweet_Mock_Orange/Sweet_Mock_Orange_genesis.usd"
+    description: "Small mock orange shrub."
+    typical_footprint_radius: 0.4
+
+  # Lightwheel kitchen appliances (CC BY-NC 4.0). 243 total in
+  # ~/genesis/lightwheel_assets/Lightwheel_OpenSource/Manipulation/. Replace
+  # NN with a number (e.g. 043, 044, 092). All have `_genesis.usd` variant.
+  # Listed examples — Gemini can request specific NN if it wants variety.
+  appliance_refrigerator:
+    path_pattern: "/home/frl/genesis/lightwheel_assets/Lightwheel_OpenSource/Manipulation/Refrigerator{NN}/Refrigerator{NN}_genesis.usd"
+    valid_nn: "001..050 (any 3-digit number 001-050)"
+    typical_size: [0.83, 0.75, 1.71]
+    typical_footprint_radius: 0.55
+  appliance_microwave:
+    path_pattern: "/home/frl/genesis/lightwheel_assets/Lightwheel_OpenSource/Manipulation/Microwave{NN}/Microwave{NN}_genesis.usd"
+    valid_nn: "001..050"
+    typical_size: [0.60, 0.38, 0.32]
+    typical_footprint_radius: 0.35
+  appliance_toaster_oven:
+    path_pattern: "/home/frl/genesis/lightwheel_assets/Lightwheel_OpenSource/Manipulation/ToasterOven{NN}/ToasterOven{NN}_genesis.usd"
+    valid_nn: "001..030"
+    typical_size: [0.55, 0.46, 0.37]
+    typical_footprint_radius: 0.35
+  appliance_coffee_machine:
+    path_pattern: "/home/frl/genesis/lightwheel_assets/Lightwheel_OpenSource/Manipulation/CoffeeMachine{NN}/CoffeeMachine{NN}_genesis.usd"
+    valid_nn: "001..099"
+    typical_size: [0.40, 0.75, 0.49]
+    typical_footprint_radius: 0.40
+
+# ════════════════════════════════════════════════════════════════════
+# GLB assets (Objaverse, photoreal). Indexed in
+# scenes/asset_objaverse_index.json — each entry has a pre-computed `scale`
+# field that normalizes to the target size in meters.
+# Use gs.morphs.Mesh(file=path, scale=scale) for these.
+# ════════════════════════════════════════════════════════════════════
+glb_assets:
+  tree_leafy:
+    description: "Leafy green tree, ~4m tall."
+    target_size_m: 4.0
+    typical_footprint_radius: 0.4
+  tree_pine:
+    description: "Pine tree with frosted/snowy needles, ~5m tall."
+    target_size_m: 5.0
+    typical_footprint_radius: 0.5
+  tree_maple:
+    description: "Maple tree with red/orange autumn leaves, ~4.5m."
+    target_size_m: 4.5
+    typical_footprint_radius: 0.4
+  tree_in_square:
+    description: "Tree in a planter/square setting, ~4m."
+    target_size_m: 4.0
+    typical_footprint_radius: 0.5
+  bush_flowering:
+    description: "Low flowering bush, ~1m wide, blocks full footprint."
+    target_size_m: 1.0
+    typical_footprint_radius: 0.6
+  bush_leafy:
+    description: "Low green bush, ~0.8m, blocks full footprint."
+    target_size_m: 0.8
+    typical_footprint_radius: 0.5
+  hedge_multi:
+    description: "Long hedge section, ~1.2m wide, blocks full footprint."
+    target_size_m: 1.2
+    typical_footprint_radius: 0.8
+  hedge_simple:
+    description: "Smaller hedge, ~1m, blocks full footprint."
+    target_size_m: 1.0
+    typical_footprint_radius: 0.6
+  car_generic:
+    description: "Generic parked car, ~4.5m long, blocks full footprint."
+    target_size_m: 4.5
+    typical_footprint_radius: 2.5
+  car_white:
+    description: "White parked car, ~4.5m, blocks full footprint."
+    target_size_m: 4.5
+    typical_footprint_radius: 2.5
+
+# ════════════════════════════════════════════════════════════════════
+# Recipes — composite-primitive cookbook (when USD/GLB feels too heavy)
+# ════════════════════════════════════════════════════════════════════
+recipes:
+  tree_deciduous:
+    description: "Trunk + spherical canopy. Trees go on grass, off-road, off-path."
+    typical_size: { trunk_radius: 0.15-0.25, trunk_height: 2.5-4.0, canopy_radius: 1.2-2.0 }
+    example_objects:
+      - {name: tree_T_trunk,  type: cylinder, radius: 0.18, height: 3.0, position: [-3.0, 6.0, 1.5], color: [0.36, 0.22, 0.10]}
+      - {name: tree_T_canopy, type: sphere,   radius: 1.4,                position: [-3.0, 6.0, 3.6], color: [0.20, 0.55, 0.20]}
+
+  bush:
+    description: "Single low sphere on grass."
+    example_objects:
+      - {name: bush_T, type: sphere, radius: 0.45, position: [4.0, 6.5, 0.32], color: [0.20, 0.50, 0.22]}
+
+  lamp_post:
+    example_objects:
+      - {name: lamp_T_pole, type: cylinder, radius: 0.05, height: 4.0, position: [-16.0, 2.5, 2.0], color: [0.20, 0.20, 0.22]}
+      - {name: lamp_T_head, type: sphere,   radius: 0.20,                position: [-16.0, 2.5, 4.1], color: [0.95, 0.92, 0.55]}
+
+  bench:
+    example_objects:
+      - {name: bench_T_seat,  type: box, size: [1.6, 0.40, 0.05], position: [-3.5, 4.5, 0.45], color: [0.45, 0.30, 0.15]}
+      - {name: bench_T_back,  type: box, size: [1.6, 0.05, 0.45], position: [-3.5, 4.7, 0.70], color: [0.45, 0.30, 0.15]}
+      - {name: bench_T_leg_L, type: box, size: [0.05, 0.40, 0.45], position: [-4.2, 4.5, 0.225], color: [0.20, 0.20, 0.20]}
+      - {name: bench_T_leg_R, type: box, size: [0.05, 0.40, 0.45], position: [-2.8, 4.5, 0.225], color: [0.20, 0.20, 0.20]}
+
+  trash_bin:
+    example_objects:
+      - {name: bin_T, type: cylinder, radius: 0.20, height: 0.80, position: [-5.0, 3.0, 0.40], color: [0.25, 0.25, 0.30]}
+
+  building_wall:
+    example_objects:
+      - {name: wall_T, type: box, size: [10.0, 0.20, 4.0], position: [0.0, -10.0, 2.0], color: [0.85, 0.80, 0.70]}
+
+palette_hints:
+  asphalt:    [0.18, 0.18, 0.20]
+  concrete:   [0.65, 0.65, 0.62]
+  brick_red:  [0.50, 0.20, 0.15]
+  grass:      [0.30, 0.55, 0.25]
+  bark_brown: [0.36, 0.22, 0.10]
+  leaf_green: [0.20, 0.55, 0.20]
+  wood_warm:  [0.55, 0.40, 0.25]
+  metal_grey: [0.55, 0.55, 0.60]
+  yellow_lamp: [0.95, 0.92, 0.55]
+  white_paint: [0.95, 0.95, 0.95]

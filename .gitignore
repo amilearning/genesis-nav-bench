@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.pytest_cache/
+.ruff_cache/
+.pyright/
+build/
+dist/
+.venv/
+venv/
+
+# Genesis cache (regenerated)
+.genesis_cache/
+
+# Generated outputs (huge MP4s + PNGs)
+examples/outputs/
+**/test_output/
+**/outputs/nav_*/fpv.mp4
+**/outputs/nav_*/boom.mp4
+**/outputs/nav_*/chase.mp4
+
+# Asset data (download separately — see README "Required external assets")
+assets_data/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Local config (machine-specific paths)
+.genesis_navrc
+config.local.toml
