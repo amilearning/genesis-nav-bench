@@ -70,8 +70,24 @@ def main(argv: list[str] | None = None) -> int:
         from genesis_nav.planner.astar import main as m
         return m(rest)
     if cmd == "run":
+        # Dispatch to husky or go2 based on the task YAML's robot.type.
+        import argparse as _ap
+        ap = _ap.ArgumentParser(prog="genesis-nav run")
+        ap.add_argument("task_name")
+        ap.add_argument("--rasterizer", action="store_true")
+        args = ap.parse_args(rest)
+        import yaml as _yaml
+        from genesis_nav.planner.astar import _resolve_task_yaml
+        name = args.task_name.removeprefix("nav_").removesuffix(".yaml")
+        yaml_path = _resolve_task_yaml(name, None)
+        robot_type = _yaml.safe_load(yaml_path.read_text())\
+            .get("robot", {}).get("type", "husky")
+        if robot_type == "go2":
+            from genesis_nav.runner.go2_drive import run_go2
+            run_go2(name, rasterizer=args.rasterizer)
+            return 0
         from genesis_nav.runner.husky_drive import main as m
-        return m(rest)
+        return m([name] + (["--rasterizer"] if args.rasterizer else []))
     if cmd == "pipeline":
         return _pipeline(rest)
     if cmd == "fetch":

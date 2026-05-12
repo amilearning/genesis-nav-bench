@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.1 (2026-05-12)
+
+### Fixed
+- **Go2 runner now actually honors `--rasterizer`.** Previously
+  `go2_drive.run_go2(rasterizer=...)` accepted the flag but never wired a
+  renderer into `Go2Env`, so the Scene was always built with the default
+  rasterizer regardless of the flag. Patch:
+  - `robots/go2_env.py` reads `_renderer` and `_use_raytracer_cams` set by
+    the runner before `__init__`, passes `renderer=` to `gs.Scene` and
+    switches FPV/boom camera options to `RaytracerCameraOptions` (spp=32,
+    denoise=True) when in raytracer mode.
+  - `runner/go2_drive.py` mirrors `husky_drive`'s LuisaRender detection:
+    builds `gs.renderers.RayTracer(env_surface=Emission(hdri))` when
+    LuisaRender is importable and the YAML names an HDRI.
+- **CLI dispatch bug**: `genesis-nav run <task>` always called `husky_drive`
+  regardless of `robot.type` in the task YAML. Fixed `cli.py` to peek at
+  `robot.type` and dispatch to `go2_drive.run_go2` when it says `go2`.
+
 ## 0.3.0 (2026-05-12)
 
 ### Added

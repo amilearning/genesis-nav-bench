@@ -47,14 +47,32 @@ def _registry() -> dict:
 from genesis_nav.planner.astar import _resolve_task_yaml
 from genesis_nav.runner.husky_drive import (
     _grab, _yaw_from_quat, _color_surface, _resolve_usd_path, _resolve_glb,
+    _luisarender_available,
 )
 
 
 def _spawn_objects_callback(cfg):
-    """Return a function that adds the YAML's objects to a scene before build.
-    Used as Go2Env._extra_objects_fn."""
+    """Return a function that adds the YAML's textured ground + objects to a
+    scene before build. Used as Go2Env._extra_objects_fn."""
     def fn(scene):
         import genesis as gs
+        from genesis_nav.config import paths as _paths
+        # ── Textured ground (replaces the URDF plane Go2Env would've added) ──
+        ground_cfg = (cfg.get("world", {}) or {}).get("ground", {}) or {}
+        tex_name = ground_cfg.get("texture", "grass")
+        tex_path = _paths().ground_textures / f"{tex_name}.jpg"
+        if tex_path.exists():
+            scene.add_entity(
+                gs.morphs.Plane(),
+                surface=gs.surfaces.Default(
+                    diffuse_texture=gs.textures.ImageTexture(image_path=str(tex_path)),
+                    roughness=0.85,
+                ),
+            )
+        else:
+            # Fallback: bare Plane (Genesis default checker) if the texture is missing
+            scene.add_entity(gs.morphs.Plane())
+
         counters = {"box": 0, "cyl": 0, "sph": 0, "usd": 0, "glb": 0, "skip": 0}
         for obj in cfg.get("objects", []):
             t = obj["type"]; pos = tuple(map(float, obj["position"]))
@@ -101,7 +119,7 @@ def _spawn_objects_callback(cfg):
     return fn
 
 
-def run_go2(task_name: str, *, ckpt: int = 299, rasterizer: bool = False) -> Path:
+def run_go2(task_name: str, *, ckpt: int = 499, rasterizer: bool = False) -> Path:
     """Run Go2 navigation policy along the planned path. Writes outputs to
     output_dir(task_name)/."""
     task_name = task_name.removeprefix("nav_").removesuffix(".yaml")
@@ -158,9 +176,34 @@ def run_go2(task_name: str, *, ckpt: int = 299, rasterizer: bool = False) -> Pat
     spawn_pos = list(map(float, cfg["robot"]["start"])) + [float(go2_spec["typical_spawn_z"])]
     spawn_quat = [1.0, 0.0, 0.0, 0.0]   # facing +X to start; pure-pursuit will turn it
 
+    # Optional LuisaRender path-traced rendering with HDRI sky.
+    use_hdri = (not rasterizer) and _luisarender_available()
+    if (not rasterizer) and not use_hdri:
+        print("[go2] LuisaRender not available — falling back to rasterizer")
+    renderer = None
+    if use_hdri:
+        sky = (cfg.get("world", {}) or {}).get("sky", {}) or {}
+        hdri_name = sky.get("hdri")
+        hdri_path = paths().hdris / f"{hdri_name}.hdr" if hdri_name else None
+        if hdri_path and hdri_path.exists():
+            renderer = gs.renderers.RayTracer(
+                env_surface=gs.surfaces.Emission(
+                    emissive_texture=gs.textures.ImageTexture(
+                        image_path=str(hdri_path), encoding="linear"),
+                ),
+                env_radius=500.0, tracing_depth=8,
+            )
+        else:
+            print(f"[go2] HDRI {hdri_name!r} not found; raytracer skipped")
+            use_hdri = False
+    print(f"[go2] booting Go2Env (use_hdri={use_hdri})")
+
     env = Go2Env.__new__(Go2Env)
     env._spawn_pos = spawn_pos
     env._spawn_quat = spawn_quat
+    env._skip_default_plane = True   # our _extra_objects_fn adds a textured Plane instead
+    env._renderer = renderer
+    env._use_raytracer_cams = use_hdri
     env._add_camera = True
     env._add_fpv_camera = True
     env._add_boom_camera = True

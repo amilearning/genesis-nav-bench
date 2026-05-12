@@ -32,17 +32,13 @@ class Go2Env:
         self.obs_scales: dict[str, float] = obs_cfg["obs_scales"]
         self.reward_scales: dict[str, float] = reward_cfg["reward_scales"]
 
-        # create scene
-        self.scene = gs.Scene(
-            sim_options=gs.options.SimOptions(
-                dt=self.dt,
-                substeps=2,
-            ),
+        # create scene — optional LuisaRender path-tracer wired in via
+        # `_renderer` set by the runner before __init__.
+        scene_kwargs = dict(
+            sim_options=gs.options.SimOptions(dt=self.dt, substeps=2),
             rigid_options=gs.options.RigidOptions(
                 enable_self_collision=False,
                 tolerance=1e-5,
-                # For this locomotion policy, there are usually no more than 20 collision pairs. Setting a low value
-                # can save memory. Violating this condition will raise an exception.
                 max_collision_pairs=20,
             ),
             viewer_options=gs.options.ViewerOptions(
@@ -54,10 +50,17 @@ class Go2Env:
             vis_options=gs.options.VisOptions(rendered_envs_idx=[0]),
             show_viewer=show_viewer,
         )
+        renderer = getattr(self, '_renderer', None)
+        if renderer is not None:
+            scene_kwargs["renderer"] = renderer
+        self.scene = gs.Scene(**scene_kwargs)
 
-        # add terrain or plain
+        # add terrain or plain — caller can set `_skip_default_plane=True` to
+        # add a custom textured ground via `_extra_objects_fn`.
         terrain_type = self.env_cfg.get("terrain_type", "flat")
-        if terrain_type == "flat":
+        if getattr(self, '_skip_default_plane', False):
+            pass    # caller will add its own ground
+        elif terrain_type == "flat":
             self.scene.add_entity(
                 gs.morphs.URDF(file="urdf/plane/plane.urdf", fixed=True)
             )
@@ -118,15 +121,18 @@ class Go2Env:
                 fov=50,
                 GUI=False,
             )
+        use_rt_cams = getattr(self, '_use_raytracer_cams', False)
+        cam_cls = gs.sensors.RaytracerCameraOptions if use_rt_cams else gs.sensors.RasterizerCameraOptions
+        cam_extra = {"spp": 32, "denoise": True} if use_rt_cams else {}
         if hasattr(self, '_add_fpv_camera') and self._add_fpv_camera:
-            # Override via attrs `_fpv_pos / _fpv_lookat / _fpv_fov` set before __init__
             fpv_pos    = getattr(self, '_fpv_pos',    (0.35,  0.0, 0.15))
             fpv_lookat = getattr(self, '_fpv_lookat', (3.0,   0.0, 0.05))
             fpv_fov    = getattr(self, '_fpv_fov',    86.0)
             self.fpv_cam = self.scene.add_sensor(
-                gs.sensors.RasterizerCameraOptions(
+                cam_cls(
                     res=(1280, 720), pos=fpv_pos, lookat=fpv_lookat, fov=fpv_fov,
                     entity_idx=getattr(self, 'robot').idx, link_idx_local=0,
+                    **cam_extra,
                 ),
             )
         if hasattr(self, '_add_boom_camera') and self._add_boom_camera:
@@ -134,9 +140,10 @@ class Go2Env:
             boom_lookat = getattr(self, '_boom_lookat', ( 1.5, 0.0, 0.05))
             boom_fov    = getattr(self, '_boom_fov',    80.0)
             self.boom_cam = self.scene.add_sensor(
-                gs.sensors.RasterizerCameraOptions(
+                cam_cls(
                     res=(1280, 720), pos=boom_pos, lookat=boom_lookat, fov=boom_fov,
                     entity_idx=getattr(self, 'robot').idx, link_idx_local=0,
+                    **cam_extra,
                 ),
             )
 
