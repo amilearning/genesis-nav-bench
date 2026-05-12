@@ -48,6 +48,7 @@ class PlanResult:
     occupancy_png: Path
     overlay_png: Path
     json_path: Path
+    elapsed_seconds: float = 0.0    # set by NavPlanner wrapper
 
 
 # --- Footprint painting ---------------------------------------------

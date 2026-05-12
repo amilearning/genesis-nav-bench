@@ -21,6 +21,15 @@
 - New CLI subcommand: `genesis-nav examples [--dest DIR] [--overwrite]`.
 
 ### Changed
+- **Per-stage timing + metrics persisted** to each task folder:
+  - `drive_metrics.json` (runner-only: sim_steps, sim_seconds, wall_seconds,
+    final_pos, goal_residual_m, max_xtrack_m, n_frames, goal_reached)
+  - `metrics.json` (pipeline-wide consolidated: design/plan/run elapsed +
+    parameters + total_wall_seconds, with ISO-8601 UTC timestamp)
+  - `run.log` (human-readable one-pager of everything that happened)
+  Surfaced in the dataclasses: `DesignResult.elapsed_seconds`,
+  `PlanResult.elapsed_seconds`, `RunResult.{wall_seconds, sim_seconds,
+   sim_steps, n_frames}`.
 - **Each task is now self-contained**: the YAML config is saved as
   `<outputs>/nav_<name>/config.yaml`, alongside `occupancy.png`, `path.png`,
   `path.json`, `fpv.mp4`, `boom.mp4`, `chase.mp4`, `trace.png`. The legacy

@@ -17,6 +17,7 @@ import json
 import math
 import os
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -247,6 +248,8 @@ def _drive(scene, robot_cfg, waypoints, out_dir, use_hdri):
     MAX_STEPS = 6000
     # Cross-track metric — distance from current pose to nearest dense waypoint.
     max_xtrack = 0.0
+    drive_t0 = time.perf_counter()
+    goal_reached_step: int | None = None
     for step_i in range(MAX_STEPS):
         pos = husky.get_pos().cpu().numpy().flatten()
         quat = husky.get_quat().cpu().numpy().flatten()
@@ -272,17 +275,38 @@ def _drive(scene, robot_cfg, waypoints, out_dir, use_hdri):
                 print(f"  step {step_i:4d}  pos=({pos[0]:+.2f},{pos[1]:+.2f}) "
                       f"v={v_lin:.2f} ω={omega:+.2f} xtrack={xtrack:.2f}")
         if follower.done:
+            goal_reached_step = step_i
             print(f"[drive] GOAL reached at step {step_i}")
             break
 
+    drive_wall_s = time.perf_counter() - drive_t0
+    sim_steps = step_i + 1
+    sim_seconds = sim_steps * 0.01    # dt=0.01 in SimOptions
     final = xy_trace[-1]
     gx, gy = robot_cfg["goal"]
     goal_residual = math.hypot(final[0] - gx, final[1] - gy)
     print(f"[drive] final pos = ({final[0]:.2f}, {final[1]:.2f})  "
-           f"goal residual = {goal_residual:.2f} m  max xtrack = {max_xtrack:.2f} m")
+           f"goal residual = {goal_residual:.2f} m  max xtrack = {max_xtrack:.2f} m  "
+           f"sim={sim_seconds:.1f}s, wall={drive_wall_s:.1f}s")
     mimwrite(str(out_dir / "fpv.mp4"), fpv_frames, fps=25)
     mimwrite(str(out_dir / "boom.mp4"), boom_frames, fps=25)
     mimwrite(str(out_dir / "chase.mp4"), chase_frames, fps=25)
+
+    # Persist drive metrics for downstream stages / analysis.
+    metrics_path = out_dir / "drive_metrics.json"
+    metrics_data = {
+        "goal_reached": goal_reached_step is not None,
+        "goal_reached_step": goal_reached_step,
+        "sim_steps": sim_steps,
+        "sim_seconds": round(sim_seconds, 3),
+        "wall_seconds": round(drive_wall_s, 3),
+        "final_pos": [round(final[0], 3), round(final[1], 3)],
+        "goal_pos": [float(gx), float(gy)],
+        "goal_residual_m": round(goal_residual, 3),
+        "max_xtrack_m": round(max_xtrack, 3),
+        "n_frames": len(fpv_frames),
+    }
+    metrics_path.write_text(json.dumps(metrics_data, indent=2))
 
     plan_overlay = out_dir / "path.png"
     if plan_overlay.exists():
