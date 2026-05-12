@@ -180,15 +180,27 @@ class NavPipeline:
 
     def run(self, *, description: str, name: str,
             robot: str = "husky",
-            bounds: tuple[float, float, float, float] = (-15, 15, -15, 15)) -> dict:
+            bounds: tuple[float, float, float, float] = (-15, 15, -15, 15),
+            timestamp: bool = True) -> dict:
         """Run all 3 stages end-to-end. Returns a dict with the stage results.
-        Raises if any stage fails (e.g. A* finds no path)."""
+        Raises if any stage fails (e.g. A* finds no path).
+
+        timestamp: if True (default), appends `_<YYYYMMDD_HHMMSS>` to the
+        task name so each pipeline run gets its own folder + videos aren't
+        overwritten. Set False for deterministic behavior (overwrites)."""
         pipeline_t0 = time.perf_counter()
+        if timestamp:
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            effective_name = f"{name}_{ts}"
+        else:
+            effective_name = name
         design_res = self.designer.design(
-            description=description, name=name, robot=robot, bounds=bounds)
-        plan_res = self.planner.plan(name)
-        run_res = self.runner.run(name)
+            description=description, name=effective_name, robot=robot, bounds=bounds)
+        plan_res = self.planner.plan(effective_name)
+        run_res = self.runner.run(effective_name)
         total_wall = time.perf_counter() - pipeline_t0
+        # Track the actual task name (with timestamp) for the consolidated log.
+        name = effective_name
 
         # Write consolidated metrics + human-readable log to the task folder.
         out = run_res.output_dir

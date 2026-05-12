@@ -21,6 +21,18 @@
 - New CLI subcommand: `genesis-nav examples [--dest DIR] [--overwrite]`.
 
 ### Changed
+- **Experiment runner** (`genesis-nav experiment`) — runs N pipelines in
+  sequence with varied descriptions and writes a summary CSV/MD aggregating
+  timings, success, residuals. Pulls from a 10-prompt curated bank by default
+  (or use `--descriptions prompts.txt` for your own list). Reproducible with
+  `--seed`. Single failed runs (e.g. Gemini 503) are caught and reported in
+  the summary, the batch keeps going.
+  Programmatic: `from genesis_nav import ExperimentRunner, DEFAULT_PROMPT_BANK`.
+- **Timestamped task folders by default**. `genesis-nav pipeline` now writes
+  to `~/.genesis_nav/outputs/nav_<name>_<YYYYMMDD_HHMMSS>/`, so re-running the
+  same task name preserves the previous run's videos + metrics. The standalone
+  `design / plan / run` subcommands still treat the name literally (so they
+  can target an existing folder). Use `--no-timestamp` to opt out.
 - **Per-stage timing + metrics persisted** to each task folder:
   - `drive_metrics.json` (runner-only: sim_steps, sim_seconds, wall_seconds,
     final_pos, goal_residual_m, max_xtrack_m, n_frames, goal_reached)

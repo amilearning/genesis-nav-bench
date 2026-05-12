@@ -2,6 +2,7 @@
 __version__ = "0.2.0"
 
 from . import config  # noqa: F401
+from .experiment import DEFAULT_PROMPT_BANK, ExperimentRunner, ExperimentRunResult
 from .pipeline import (
     DesignResult,
     NavPipeline,
@@ -14,4 +15,5 @@ from .pipeline import (
 __all__ = [
     "NavPipeline", "NavTaskDesigner", "NavPlanner", "NavRunner",
     "DesignResult", "RunResult",
+    "ExperimentRunner", "ExperimentRunResult", "DEFAULT_PROMPT_BANK",
 ]

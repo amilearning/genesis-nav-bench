@@ -12,6 +12,7 @@
     genesis-nav catalog
     genesis-nav bootstrap
     genesis-nav examples         # copy bundled example task YAMLs
+    genesis-nav experiment       # run N random pipelines + aggregate metrics
 
 Subcommands fan out to module-level main() functions.
 """
@@ -33,6 +34,8 @@ def _pipeline(argv: list[str]) -> int:
     ap.add_argument("--rasterizer", action="store_true")
     ap.add_argument("--model", default="gemini-2.5-flash")
     ap.add_argument("--temperature", type=float, default=0.6)
+    ap.add_argument("--no-timestamp", action="store_true",
+                     help="don't append _<YYYYMMDD_HHMMSS> to the task folder")
     args = ap.parse_args(argv)
     bounds = tuple(float(v) for v in args.bounds.split(","))
 
@@ -42,7 +45,8 @@ def _pipeline(argv: list[str]) -> int:
     )
     try:
         results = pipeline.run(description=args.description, name=args.name,
-                                 robot=args.robot, bounds=bounds)
+                                 robot=args.robot, bounds=bounds,
+                                 timestamp=not args.no_timestamp)
     except Exception as e:
         print(f"[pipeline] {type(e).__name__}: {e}", file=sys.stderr)
         return 1
@@ -90,6 +94,9 @@ def main(argv: list[str] | None = None) -> int:
         return m(rest)
     if cmd == "examples":
         from genesis_nav.examples import main as m
+        return m(rest)
+    if cmd == "experiment":
+        from genesis_nav.experiment import main as m
         return m(rest)
     if cmd == "version":
         from genesis_nav import __version__
