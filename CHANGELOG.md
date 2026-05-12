@@ -3,6 +3,13 @@
 ## 0.2.0 (2026-05-12)
 
 ### Added
+- **`genesis_nav.pipeline`** — `NavTaskDesigner`, `NavPlanner`, `NavRunner`
+  stage classes + `NavPipeline` orchestrator. Each class holds its own
+  configuration (model/temperature, res/safety, rasterizer/HDRI). Existing
+  function APIs are kept as the underlying impl. Surfaced at package
+  top-level: `from genesis_nav import NavPipeline`.
+- **`examples/run_pipeline.py`** — programmatic master script using the
+  stage classes (analog of `genesis-nav pipeline`).
 - **`genesis_nav.planner.smoother`** — `densify_linear` (LOS-safe resampling of
   A*+smoothed paths at 10 cm) and `densify_spline` (natural cubic spline, when
   you can afford to risk minor obstacle shortcutting).
@@ -14,6 +21,13 @@
 - New CLI subcommand: `genesis-nav examples [--dest DIR] [--overwrite]`.
 
 ### Changed
+- **Each task is now self-contained**: the YAML config is saved as
+  `<outputs>/nav_<name>/config.yaml`, alongside `occupancy.png`, `path.png`,
+  `path.json`, `fpv.mp4`, `boom.mp4`, `chase.mp4`, `trace.png`. The legacy
+  `<root>/configs/nav_<name>.yaml` path is still accepted as a fallback by
+  the planner / runner, so old hand-authored configs keep working.
+- `genesis-nav examples` now drops bundled YAMLs into per-task output
+  subfolders (one `config.yaml` per task), matching the new layout.
 - **Husky wheel velocity gain bumped from `kv=1.0` → `kv=20.0`** in the runner.
   This is the load-bearing fix that lets diff-drive corrections actually take
   effect — the old `kv=1.0` made wheels reach ~10% of commanded velocity under

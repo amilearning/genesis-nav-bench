@@ -160,13 +160,29 @@ def _smooth_path(path, grid):
 
 
 # --- Public API -----------------------------------------------------
+def _resolve_task_yaml(task_name: str, explicit: Path | None) -> Path:
+    """Find the task YAML: explicit arg first, then <outputs>/nav_<name>/config.yaml
+    (canonical), then legacy <root>/configs/nav_<name>.yaml."""
+    if explicit is not None:
+        if not explicit.exists():
+            raise FileNotFoundError(f"task YAML not found at {explicit}")
+        return explicit
+    candidates = [
+        output_dir(task_name) / "config.yaml",
+        paths().root / "configs" / f"nav_{task_name}.yaml",
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    raise FileNotFoundError(
+        f"task YAML not found in any of:\n  " + "\n  ".join(str(c) for c in candidates))
+
+
 def plan(task_name: str, *, yaml_path: Path | None = None,
          res: float = 0.10, safety: float = 0.10) -> PlanResult:
     """Plan a nav task. Returns PlanResult + writes 3 files into output_dir(task_name)."""
     task_name = task_name.removeprefix("nav_").removesuffix(".yaml")
-    yaml_path = yaml_path or (paths().root / "configs" / f"nav_{task_name}.yaml")
-    if not yaml_path.exists():
-        raise FileNotFoundError(f"task YAML not found at {yaml_path}")
+    yaml_path = _resolve_task_yaml(task_name, yaml_path)
 
     out_dir = output_dir(task_name)
     cfg = yaml.safe_load(yaml_path.read_text())

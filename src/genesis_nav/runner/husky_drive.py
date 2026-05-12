@@ -300,20 +300,26 @@ def _drive(scene, robot_cfg, waypoints, out_dir, use_hdri):
 
 # --- Public API + CLI -----------------------------------------------
 def _luisarender_available() -> bool:
-    bin_dir = paths().luisarender_bin
-    if not bin_dir or not bin_dir.exists():
+    """True only if the LuisaRender Python module can actually import.
+    The .so existing on disk is not enough — `PYTHONPATH` + `LD_LIBRARY_PATH`
+    must include luisarender_bin for the import to succeed."""
+    import importlib.util
+    if importlib.util.find_spec("LuisaRenderPy") is None:
         return False
-    return any(p.name.startswith("LuisaRenderPy") for p in bin_dir.glob("LuisaRenderPy*"))
+    try:
+        __import__("LuisaRenderPy")
+        return True
+    except Exception:
+        return False
 
 
 def run(task_name: str, *, rasterizer: bool = False) -> Path:
     """Run one nav task. Returns the output dir."""
+    from genesis_nav.planner.astar import _resolve_task_yaml
     task_name = task_name.removeprefix("nav_").removesuffix(".yaml")
-    yaml_path = paths().root / "configs" / f"nav_{task_name}.yaml"
     out_dir = output_dir(task_name)
+    yaml_path = _resolve_task_yaml(task_name, None)
     path_json = out_dir / "path.json"
-    if not yaml_path.exists():
-        raise FileNotFoundError(f"task YAML not found at {yaml_path}")
     if not path_json.exists():
         raise FileNotFoundError(f"plan not found at {path_json}; run plan first")
 

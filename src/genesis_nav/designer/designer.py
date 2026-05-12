@@ -15,7 +15,7 @@ import re
 import sys
 from pathlib import Path
 
-from genesis_nav.config import paths
+from genesis_nav.config import output_dir, paths
 from genesis_nav.designer.prompts import (
     PROMPT_TEMPLATE,
     ROBOT_SUMMARIES,
@@ -82,7 +82,9 @@ def design_task(*, description: str, name: str, robot: str = "husky",
 
 
 def save_task_yaml(yaml_text: str, name: str, out_dir: Path | None = None) -> Path:
-    """Validate YAML parses + save to <out_dir>/nav_<name>.yaml."""
+    """Validate YAML parses + save to <out_dir>/config.yaml. By default
+    `out_dir = paths().outputs / nav_<name>/` so each task is a self-contained
+    folder with the YAML alongside occupancy.png, path.json, fpv.mp4 etc."""
     import yaml
     try:
         parsed = yaml.safe_load(yaml_text)
@@ -90,9 +92,9 @@ def save_task_yaml(yaml_text: str, name: str, out_dir: Path | None = None) -> Pa
         raise RuntimeError(f"Gemini output did not parse as YAML: {e}") from e
     if not isinstance(parsed, dict) or "scene" not in parsed:
         raise RuntimeError("Gemini output missing top-level 'scene' key")
-    out_dir = out_dir or (paths().root / "configs")
+    out_dir = out_dir or output_dir(name)
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"nav_{name}.yaml"
+    out_path = out_dir / "config.yaml"
     out_path.write_text(yaml_text)
     return out_path
 
@@ -130,6 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     goal  = parsed.get("robot", {}).get("goal")
     print(f"[design] env={env}, hdri={hdri}, {n_obj} obj, start={start}, goal={goal}")
 
+    # save_task_yaml defaults to <outputs>/nav_<name>/config.yaml
     out_path = save_task_yaml(yaml_text, args.name)
     print(f"[design] saved {out_path}")
     return 0

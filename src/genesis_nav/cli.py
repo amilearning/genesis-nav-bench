@@ -22,10 +22,8 @@ import sys
 
 
 def _pipeline(argv: list[str]) -> int:
-    """Run design → plan → run in one shot."""
-    from genesis_nav.designer.designer import main as design_main
-    from genesis_nav.planner.astar import main as plan_main
-    from genesis_nav.runner.husky_drive import main as run_main
+    """Run design → plan → run in one shot, via NavPipeline."""
+    from genesis_nav.pipeline import NavPipeline, NavRunner, NavTaskDesigner
 
     ap = argparse.ArgumentParser(prog="genesis-nav pipeline")
     ap.add_argument("--description", required=True)
@@ -33,15 +31,26 @@ def _pipeline(argv: list[str]) -> int:
     ap.add_argument("--robot", default="husky")
     ap.add_argument("--bounds", default="-15,15,-15,15")
     ap.add_argument("--rasterizer", action="store_true")
+    ap.add_argument("--model", default="gemini-2.5-flash")
+    ap.add_argument("--temperature", type=float, default=0.6)
     args = ap.parse_args(argv)
+    bounds = tuple(float(v) for v in args.bounds.split(","))
 
-    rc = design_main(["--description", args.description, "--name", args.name,
-                       "--robot", args.robot, "--bounds", args.bounds])
-    if rc != 0: return rc
-    rc = plan_main([args.name])
-    if rc != 0: return rc
-    extra = ["--rasterizer"] if args.rasterizer else []
-    return run_main([args.name, *extra])
+    pipeline = NavPipeline(
+        designer=NavTaskDesigner(model=args.model, temperature=args.temperature),
+        runner=NavRunner(rasterizer=args.rasterizer),
+    )
+    try:
+        results = pipeline.run(description=args.description, name=args.name,
+                                 robot=args.robot, bounds=bounds)
+    except Exception as e:
+        print(f"[pipeline] {type(e).__name__}: {e}", file=sys.stderr)
+        return 1
+    d, p, r = results["design"], results["plan"], results["run"]
+    print(f"[pipeline] design  : {d.n_objects} obj, env={d.env_type}, hdri={d.hdri}")
+    print(f"[pipeline] plan    : {p.n_waypoints} waypoints, {p.path_length_m:.1f} m")
+    print(f"[pipeline] run     : output → {r.output_dir}")
+    return 0 if r.success else 2
 
 
 def main(argv: list[str] | None = None) -> int:
